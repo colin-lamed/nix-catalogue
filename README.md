@@ -1,9 +1,9 @@
-# Service-dependencies NIX
+# Catalogue NIX
 
-## Build
+## Build Service-dependencies
 
 ```
-nix-build --option sandbox false nix/build.nix
+nix-build --option sandbox false service-dependencies.nix
 ```
 
 Can be run with
@@ -17,18 +17,18 @@ result/bin/service-dependencies -Dpidfile.path=/tmp/play.pid
 ### App
 
 ```shell
-nix-build --option sandbox false nix/docker.nix
+nix-build --option sandbox false docker-service-dependencies.nix
 
 docker load -i result
 ```
 
 or all in one:
 ```shell
-docker load -i $(nix-build --option sandbox false nix/docker.nix --no-out-link)
+docker load -i $(nix-build --option sandbox false docker-service-dependencies.nix --no-out-link)
 ```
 
 ```shell
-docker run -p 8459:8459 --hostname=127.0.0.1 --net=host service-dependencies:latest
+docker run --hostname=127.0.0.1 --net=host service-dependencies:latest
 ```
 
 Note `--hostname=127.0.0.1` required to avoid
@@ -54,13 +54,13 @@ Stop with
 
 ```shell
 docker ps
-docker stop 7f5ea440ed09
+docker stop <ps-id>
 ```
 
 ### Mongo
 
 ```shell
-nix-build nix/docker-mongo.nix
+nix-build docker-mongo.nix
 docker load -i result
 docker run -p 27018:27017 --tmpfs /tmp -v /data/db mongodb:latest
 ```
@@ -69,7 +69,7 @@ docker run -p 27018:27017 --tmpfs /tmp -v /data/db mongodb:latest
 ## Deploy to kind (local k8s)
 
 ```shell
-nix-shell --option sandbox false -A shell nix/k8s.nix
+nix-shell --option sandbox false
 ```
 
 Port forward into cluster

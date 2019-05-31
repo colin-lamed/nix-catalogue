@@ -28,6 +28,11 @@ in
           env = serviceDependencies.env;
           resources.requests.cpu = serviceDependencies.cpu;
           ports."${toString serviceDependencies.port}" = {};
+          volumeMounts = [
+            { mountPath = "/tmp";
+              name = "tmp-volume";
+            }
+           ];
           livenessProbe = {
             httpGet = {
               path =  "/ping/ping";
@@ -37,24 +42,29 @@ in
             timeoutSeconds = 1;
           };
         };
+        spec.volumes = [
+          { name = "tmp-volume";
+            emptyDir = {};
+          }
+        ];
       };
     };
   };
 
   kubernetes.resources.services."${serviceDependencies.label}" = {
     spec.selector.app = "${serviceDependencies.label}";
-    # spec.ports."${toString serviceDependencies.port}".targetPort = serviceDependencies.port;
-    spec.ports."${toString serviceDependencies.port}" = {
-      targetPort = serviceDependencies.port;
+     spec.ports."${toString serviceDependencies.port}".targetPort = serviceDependencies.port;
+    # spec.ports."${toString serviceDependencies.port}" = {
+    #   targetPort = serviceDependencies.port;
 
-    # default type is "ClusterIP"
-    # service is only reachable from within cluster. Start `kubectl proxy` to reach.
-    # e.g. curl -i "http://localhost:8001/api/v1/namespaces/defult/services/service-dependencies:8459/ping/ping"
+    # # default type is "ClusterIP"
+    # # service is only reachable from within cluster. Start `kubectl proxy` to reach.
+    # # e.g. curl -i "http://localhost:8001/api/v1/namespaces/defult/services/service-dependencies:8459/ping/ping"
 
-    # nodePort will fail for "ClusterIP"
-      nodePort = 32222;
-    };
-    spec.type = "NodePort";
+    # # nodePort will fail for "ClusterIP"
+    #   nodePort = 32222;
+    # };
+    # spec.type = "NodePort";
 
     # e.g. get cluser ip: `kubectl get svc`
     # curl -i "http://<cluser ip>:32222/ping/ping"
