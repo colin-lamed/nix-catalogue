@@ -1,18 +1,13 @@
-{ pkgs ? import <nixpkgs> {} }:
+{ name, version, sha256, pkgs ? import <nixpkgs> {} }:
 
-let
-  # TODO needs to be kept in sync with sbt project?
-  version = "1.0";
-  name = "service-dependencies";
-
-in pkgs.stdenv.mkDerivation {
+pkgs.stdenv.mkDerivation {
   name = name;
 
   src = pkgs.fetchFromGitHub {
     owner = "hmrc";
-    repo = "service-dependencies";
-    rev = "ae86b6b734c6cd8c26f4d7ae9d27b39ea790dcc7";
-    sha256 = "0aad75grsjbxlk336hzz27i9vlxv7kqrjirmdg2d5cj24pxbila1";
+    repo = name;
+    rev = version;
+    sha256 = sha256;
   };
 
   # set environment variable to affect all SBT commands
@@ -27,6 +22,7 @@ in pkgs.stdenv.mkDerivation {
 
   buildInputs = [ pkgs.git pkgs.makeWrapper ]; # sbt-version plugin requires git on path
 
+# sbt plugins require it to be a git project, with appropriate tag....
 
 # java.lang.IllegalArgumentException: Invalid majorVersion: 1. You cannot request a major version of 1 if there are no tags in the repository.
 #         at uk.gov.hmrc.versioning.ReleaseVersioning$.calculateVersion(ReleaseVersioning.scala:35)
@@ -51,15 +47,12 @@ in pkgs.stdenv.mkDerivation {
 
 
   patchPhase = ''
-    # patch -p0 -i mypatch.patch # TODO sed better? what's the best solution?
-    #${pkgs.gawk}/bin/awk -i inplace '{gsub(/majorVersion := 1/,"majorVersion := 0");}1' build.sbt
-
     git init
     git config user.email "you@example.com"
     git config user.name "Your Name"
     git add .
     git commit -m "Initial import"
-    git tag -a v0.1.0 -m "v0.1.0"
+    git tag -a v${version} -m "v${version}"
   '';
 
   buildPhase = ''

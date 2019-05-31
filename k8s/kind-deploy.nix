@@ -1,6 +1,6 @@
-{ kind, appImage, config, pkgs }:
+{ kind, appImage, name, config, pkgs }:
 
-pkgs.writeScriptBin "kind-deploy-mongo"
+pkgs.writeScriptBin "kind-deploy-${name}"
 ''
   #! ${pkgs.runtimeShell}
   set -euo pipefail

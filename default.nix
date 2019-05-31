@@ -9,15 +9,51 @@ let
   docker-mongo = pkgs.callPackage ./docker-mongo.nix {};
   k8s-config-mongo = t: kubenix.buildResources { configuration = import ./k8s-config-mongo.nix { type = t; }; };
 
+  # TODO move to json file, and load them all
+
   #
-  # service dependencies
+  # catalogue-frontend
   #
 
-  # TODO move to json file, and load them all
+  docker-catalogue-frontend-imageName = "catalogue-frontend";
+
+  catalogue-frontend = pkgs.callPackage ./service.nix {
+    name = "catalogue-frontend";
+    version = "4.267.0";
+    sha256 = "11d1ds126kfd13wnprvgxc4hqdf8zlykhqvl2bcnkv1sn5xnd0wh";
+  };
+
+  docker-catalogue-frontend = pkgs.callPackage ./docker-service.nix {
+    imageName = docker-catalogue-frontend-imageName;
+    cmd = "${catalogue-frontend}/bin/catalogue-frontend";
+    debug = false;
+  };
+
+  k8s-config-catalogue-frontend = t: kubenix.buildResources {
+    configuration = import ./k8s-config-service.nix {
+      config = rec {
+        label = "catalogue-frontend";
+        port = 9017;
+        type = "dev";
+        imageName = docker-catalogue-frontend-imageName;
+        env = [{ name = "JAVA_TOOL_OPTIONS";
+                 value = "-Dhttp.port=${toString port} -Dhttp.address=0.0.0.0 -Dmongodb.uri=mongodb://mongodb/catalogue-frontend";
+              }];
+      };
+    };
+  };
+
+  #
+  # service-dependencies
+  #
 
   docker-service-dependencies-imageName = "service-dependencies";
 
-  serviceDependencies = pkgs.callPackage ./service-dependencies.nix {};
+  serviceDependencies = pkgs.callPackage ./service.nix {
+    name = "service-dependencies";
+    version = "1.82.0";
+    sha256 = "0aad75grsjbxlk336hzz27i9vlxv7kqrjirmdg2d5cj24pxbila1";
+  };
 
   docker-service-dependencies = pkgs.callPackage ./docker-service.nix {
     imageName = docker-service-dependencies-imageName;
@@ -47,16 +83,25 @@ in
       inherit kind;
     };
 
-    kind-deploy-mongo = pkgs.callPackage ./k8s/kind-deploy-mongo.nix {
+    kind-deploy-mongo = pkgs.callPackage ./k8s/kind-deploy.nix {
       config = k8s-config-mongo "dev";
+      name = "mongo";
       inherit kind;
       appImage = docker-mongo;
     };
 
-    kind-deploy-app = pkgs.callPackage ./k8s/kind-deploy-app.nix {
+    kind-deploy-service-dependencies = pkgs.callPackage ./k8s/kind-deploy.nix {
       config = k8s-config-service-dependencies "dev";
+      name = "service-dependencies";
       inherit kind;
       appImage = docker-service-dependencies;
+    };
+
+    kind-deploy-catalogue-frontend = pkgs.callPackage ./k8s/kind-deploy.nix {
+      config = k8s-config-catalogue-frontend "dev";
+      name = "catalogue-frontend";
+      inherit kind;
+      appImage = docker-catalogue-frontend;
     };
 
     shell = pkgs.mkShell {
@@ -64,7 +109,8 @@ in
         kind
         kind-create-cluster
         kind-deploy-mongo
-        kind-deploy-app
+        kind-deploy-service-dependencies
+        kind-deploy-catalogue-frontend
         pkgs.curl
         pkgs.docker
         pkgs.kubectl
@@ -72,7 +118,8 @@ in
       shellHook = ''
         kind-create-cluster
         kind-deploy-mongo
-        kind-deploy-app
+        kind-deploy-service-dependencies
+        kind-deploy-catalogue-frontend
         export KUBECONFIG=$(kind get kubeconfig-path)
       '';
     };
