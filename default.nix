@@ -9,8 +9,35 @@ let
   docker-mongo = pkgs.callPackage ./docker-mongo.nix {};
   k8s-config-mongo = t: kubenix.buildResources { configuration = import ./k8s-config-mongo.nix { type = t; }; };
 
-  docker-service-dependencies = pkgs.callPackage ./docker-service-dependencies.nix {};
-  k8s-config-service-dependencies = t: kubenix.buildResources { configuration = import ./k8s-config-service-dependencies.nix { type = t; }; };
+  #
+  # service dependencies
+  #
+
+  # TODO move to json file, and load them all
+
+  docker-service-dependencies-imageName = "service-dependencies";
+
+  serviceDependencies = pkgs.callPackage ./service-dependencies.nix {};
+
+  docker-service-dependencies = pkgs.callPackage ./docker-service.nix {
+    imageName = docker-service-dependencies-imageName;
+    cmd = "${serviceDependencies}/bin/service-dependencies";
+    debug = false;
+  };
+
+  k8s-config-service-dependencies = t: kubenix.buildResources {
+    configuration = import ./k8s-config-service.nix {
+      config = rec {
+        label = "service-dependencies";
+        port = 8459;
+        type = "dev";
+        imageName = docker-service-dependencies-imageName;
+        env = [{ name = "JAVA_TOOL_OPTIONS";
+                 value = "-Dhttp.port=${toString port} -Dhttp.address=0.0.0.0 -Dmongodb.uri=mongodb://mongodb/service-dependencies";
+              }];
+      };
+    };
+  };
 
 in
 
