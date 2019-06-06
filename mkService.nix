@@ -3,12 +3,12 @@
 pkgs.stdenv.mkDerivation {
   name = name;
 
-  src = pkgs.fetchFromGitHub {
-    owner = "hmrc";
-    repo = name;
-    rev = version;
-    sha256 = sha256;
-  };
+  src  = pkgs.fetchFromGitHub {
+           owner  = "hmrc";
+           repo   = name;
+           rev    = "v" + version;
+           sha256 = sha256;
+         };
 
   # set environment variable to affect all SBT commands
   # SBT_OPTS = ''
